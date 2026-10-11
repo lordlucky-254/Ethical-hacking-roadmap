@@ -1,58 +1,60 @@
 #!/usr/bin/env bash
-# Verify which roadmap tools are installed. Works on any distro.
-set -euo pipefail
+# check-tools.sh - Report which toolkit commands are installed.
+#
+# Usage: bash scripts/check-tools.sh
+# Exit code: 0 if every tool is found, 1 otherwise.
+set -uo pipefail
 
-GREEN='\033[0;32m'; RED='\033[0;31m'; NC='\033[0m'
-
-# tool:short-description pairs
-TOOLS=(
-  "git:Version control"
-  "curl:HTTP client"
-  "wget:File downloader"
-  "nmap:Network scanner"
-  "whois:Domain lookup"
-  "dig:DNS lookup (dnsutils)"
-  "netcat:Network utility (netcat/ncat)"
-  "python3:Scripting"
-  "pip3:Python packages (python3-pip)"
-  "tcpdump:Packet capture"
-  "nikto:Web server scanner"
-  "sqlmap:SQL injection testing"
-  "hydra:Online password cracker"
-  "john:Password cracker"
-  "hashcat:GPU password cracker"
-  "gobuster:Directory brute-forcer"
-  "ffuf:Fuzzer"
-  "gh:GitHub CLI"
-  "code:VS Code"
+# Each entry: "Label|cmd1 cmd2 ..."  (any one command counts as installed)
+CHECKS=(
+  "Nmap|nmap"
+  "Netcat|nc ncat"
+  "tcpdump|tcpdump"
+  "tshark|tshark"
+  "sqlmap|sqlmap"
+  "nikto|nikto"
+  "gobuster|gobuster"
+  "ffuf|ffuf"
+  "whatweb|whatweb"
+  "hydra|hydra"
+  "John the Ripper|john"
+  "hashcat|hashcat"
+  "aircrack-ng|aircrack-ng"
+  "git|git"
+  "curl|curl"
+  "jq|jq"
+  "tmux|tmux"
+  "Python 3|python3"
 )
 
-installed=0
 missing=0
-missing_list=()
+printf '%-18s %s\n' "TOOL" "STATUS"
+printf '%-18s %s\n' "----" "------"
 
-echo "Checking roadmap tools:"
-echo "-----------------------"
-for entry in "${TOOLS[@]}"; do
-  tool="${entry%%:*}"
-  desc="${entry#*:}"
-  if command -v "$tool" >/dev/null 2>&1; then
-    printf "  ${GREEN}[ok]${NC}   %-12s %s\n" "$tool" "$desc"
-    ((installed++))
+for entry in "${CHECKS[@]}"; do
+  label="${entry%%|*}"
+  cmds="${entry#*|}"
+  found=""
+  for c in $cmds; do
+    if command -v "$c" >/dev/null 2>&1; then
+      found="$c"
+      break
+    fi
+  done
+
+  if [[ -n "$found" ]]; then
+    printf '%-18s \033[1;32mOK\033[0m (%s)\n' "$label" "$found"
   else
-    printf "  ${RED}[miss]${NC} %-12s %s\n" "$tool" "$desc"
-    missing_list+=("$tool")
-    ((missing++))
+    printf '%-18s \033[1;31mMISSING\033[0m\n' "$label"
+    missing=$((missing + 1))
   fi
 done
 
-echo "-----------------------"
-echo "Installed: $installed / $((installed + missing))"
-
-if (( missing > 0 )); then
-  echo "Missing: ${missing_list[*]}"
-  echo "Try: bash scripts/setup.sh (installs on apt/pacman/dnf systems)"
-  exit 1
+echo
+if [[ $missing -eq 0 ]]; then
+  echo "All tools found."
+else
+  echo "$missing tool(s) missing. Run: bash scripts/setup.sh"
 fi
 
-echo "All roadmap tools available. Good to go."
+[[ $missing -eq 0 ]]

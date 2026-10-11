@@ -1,73 +1,66 @@
-# Cybersecurity Roadmap
+# Ethical Hacking Toolkit
 
-A structured, repo-driven cybersecurity learning roadmap for Linux — fully usable on **Kali Linux** and any other Linux distro (Debian/Ubuntu, Arch, Fedora/RHEL).
+A structured, Linux-first resource for learning ethical hacking (penetration testing and security defense). It contains a learning roadmap, a categorized guide to the most-used security tools, cheatsheets, and scripts that install and verify those tools.
 
-Built by curating the best open-source cybersecurity repos on GitHub into a phased path from fundamentals to job-ready pentesting.
+> **Read [ETHICS.md](ETHICS.md) before you run any tool.** Only test systems you own or have explicit written permission to test.
 
 ## What's inside
 
 ```
-cybersecurity-roadmap/
-├── README.md                 # You are here
+ethical-hacking-toolkit/
+├── README.md              # You are here
+├── ETHICS.md              # Rules of engagement and legal notes
+├── LICENSE                # MIT
 ├── docs/
-│   ├── 00-foundations.md     # Computer science & security basics
-│   ├── 01-linux.md           # Linux internals & hardening
-│   ├── 02-networking.md      # Networking & protocols
-│   ├── 03-web.md             # Web application security
-│   ├── 04-pentesting.md      # Offensive security & bug bounty
-│   ├── 05-blue-team.md       # Defense, SOC & incident response
-│   └── 06-roadmap-links.md   # Extra repos & learning links
+│   ├── roadmap.md         # Phased learning path (foundations -> job-ready)
+│   ├── tools.md           # Categorized tool guide: what it does, when to use it
+│   ├── labs.md            # Legal practice targets and platforms
+│   └── cheatsheet.md      # Quick command reference
 ├── scripts/
-│   ├── setup.sh              # Distro-agnostic tool installer (apt/pacman/dnf)
-│   └── check-tools.sh        # Verify installed tools
+│   ├── setup.sh           # Installs tools using apt, pacman, or dnf (auto-detected)
+│   └── check-tools.sh     # Reports which tools are installed
 └── resources/
-    └── (cheatsheets, notes)
+    └── notes/             # Your own notes go here
 ```
 
 ## Quick start
 
 ```bash
 # 1. Clone
-git clone https://github.com/<your-username>/cybersecurity-roadmap.git
-cd cybersecurity-roadmap
+git clone https://github.com/<your-username>/ethical-hacking-toolkit.git
+cd ethical-hacking-toolkit
 
-# 2. Install tools (auto-detects your distro)
+# 2. Install the toolkit (auto-detects apt, pacman, or dnf)
 bash scripts/setup.sh
 
-# 3. Verify what's installed
+# 3. Verify what is installed
 bash scripts/check-tools.sh
 
-# 4. Open in VS Code
-code .
+# 4. Start with the roadmap
+less docs/roadmap.md
 ```
 
-## How to use this roadmap
+## Supported systems
 
-1. Work through phases **in order** — each builds on the last.
-2. Every phase lists curated GitHub repos. Star the ones you use.
-3. Use `scripts/setup.sh` to install the tooling for each phase.
-4. Keep notes in `resources/` — your notes compound over time.
+| Distro / family                  | Package manager | Status          |
+|----------------------------------|-----------------|-----------------|
+| Kali Linux, Debian, Parrot, Ubuntu | `apt`         | Supported       |
+| Arch, BlackArch, Manjaro         | `pacman`        | Supported       |
+| Fedora, RHEL, Rocky              | `dnf`           | Supported       |
 
-## Distro support
+Some tools are not packaged on every distro. `setup.sh` keeps going when a package is missing and tells you which ones to install manually. Kali ships most of these tools out of the box.
 
-| Distro / Family | Package manager | Status |
-|---|---|---|
-| Kali Linux, Debian, Parrot | `apt` | ✅ tested |
-| Ubuntu | `apt` | ✅ tested |
-| Arch, BlackArch, Manjaro | `pacman` | ✅ supported |
-| Fedora, RHEL, Rocky | `dnf` | ✅ supported |
+## How to use this toolkit
 
-All scripts are POSIX-ish bash with **no distro-specific hardcoding** — they detect `apt-get`, `pacman`, or `dnf` at runtime.
+1. Follow the roadmap **in order**. Each phase builds on the one before it.
+2. Build a lab (see [docs/labs.md](docs/labs.md)). Practice on targets you are allowed to attack.
+3. Read the tool guide before you run a tool. Know what it does and what traffic it generates.
+4. Keep your own notes in `resources/notes/`. Notes compound over time.
 
-## Progress tracking
+## Contributing
 
-- [ ] Phase 0 — Foundations
-- [ ] Phase 1 — Linux
-- [ ] Phase 2 — Networking
-- [ ] Phase 3 — Web Security
-- [ ] Phase 4 — Pentesting
-- [ ] Phase 5 — Blue Team
+Pull requests are welcome: fix a broken install command, add a tool, or improve a guide. Keep contributions free of attacks on real systems and of anything aimed at harming others.
 
 ## License
 
-MIT — reuse freely.
+MIT. See [LICENSE](LICENSE).

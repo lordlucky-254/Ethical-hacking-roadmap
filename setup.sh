@@ -1,103 +1,108 @@
 #!/usr/bin/env bash
-# Distro-agnostic installer for the cybersecurity roadmap tooling.
-# Supports Debian/Kali/Ubuntu (apt), Arch/BlackArch (pacman), Fedora/RHEL (dnf).
-set -euo pipefail
+# setup.sh - Install ethical hacking tools on Debian/Ubuntu/Kali (apt),
+# Arch/BlackArch/Manjaro (pacman), and Fedora/RHEL/Rocky (dnf).
+#
+# Usage: bash scripts/setup.sh
+#
+# Only use these tools on systems you own or are authorized to test.
+# See ETHICS.md.
+set -uo pipefail
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
-info()  { echo -e "${GREEN}[+]${NC} $*"; }
-warn()  { echo -e "${YELLOW}[!]${NC} $*"; }
-err()   { echo -e "${RED}[-]${NC} $*" >&2; }
+# Package map: generic-name|apt|pacman|dnf
+# Use "-" if a package is not available for that package manager.
+PACKAGES=(
+  "nmap|nmap|nmap|nmap"
+  "ncat|netcat-openbsd|openbsd-netcat|nmap-ncat"
+  "tcpdump|tcpdump|tcpdump|tcpdump"
+  "tshark|tshark|wireshark-cli|wireshark-cli"
+  "sqlmap|sqlmap|sqlmap|sqlmap"
+  "nikto|nikto|nikto|nikto"
+  "gobuster|gobuster|gobuster|gobuster"
+  "ffuf|ffuf|ffuf|ffuf"
+  "whatweb|whatweb|whatweb|whatweb"
+  "hydra|hydra|hydra|hydra"
+  "john|john|john|john"
+  "hashcat|hashcat|hashcat|hashcat"
+  "aircrack-ng|aircrack-ng|aircrack-ng|aircrack-ng"
+  "seclists|seclists|seclists|seclists"
+  "git|git|git|git"
+  "curl|curl|curl|curl"
+  "jq|jq|jq|jq"
+  "tmux|tmux|tmux|tmux"
+)
 
+info()  { printf '\033[1;34m[*]\033[0m %s\n' "$*"; }
+ok()    { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
+warn()  { printf '\033[1;33m[!]\033[0m %s\n' "$*"; }
+die()   { printf '\033[1;31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
+
+# Use sudo only when not already root
 if [[ $EUID -eq 0 ]]; then
   SUDO=""
 else
+  command -v sudo >/dev/null 2>&1 || die "This script needs root or sudo."
   SUDO="sudo"
 fi
 
-detect_pm() {
-  if command -v apt-get >/dev/null 2>&1; then
-    echo "apt"
-  elif command -v pacman >/dev/null 2>&1; then
-    echo "pacman"
-  elif command -v dnf >/dev/null 2>&1; then
-    echo "dnf"
-  else
-    echo "none"
-  fi
-}
-
-PM=$(detect_pm)
-if [[ $PM == "none" ]]; then
-  err "No supported package manager found (apt, pacman, dnf)."
-  err "Install tools manually: see docs/06-roadmap-links.md"
-  exit 1
+# Detect the package manager
+if command -v apt-get >/dev/null 2>&1; then
+  PM="apt"
+elif command -v pacman >/dev/null 2>&1; then
+  PM="pacman"
+elif command -v dnf >/dev/null 2>&1; then
+  PM="dnf"
+else
+  die "No supported package manager found (apt, pacman, or dnf)."
 fi
 info "Detected package manager: $PM"
 
-update_index() {
-  info "Updating package index..."
-  case $PM in
-    apt)    $SUDO apt-get update -y ;;
-    pacman) $SUDO pacman -Sy --noconfirm ;;
-    dnf)    $SUDO dnf check-update -y || true ;;
-  esac
-}
+# Refresh package indexes
+case "$PM" in
+  apt)    $SUDO apt-get update -y || warn "apt-get update reported errors; continuing." ;;
+  pacman) $SUDO pacman -Sy --noconfirm || warn "pacman -Sy reported errors; continuing." ;;
+  dnf)    : ;;  # dnf refreshes metadata automatically
+esac
 
-install_pkg() {
+# Install one package; return non-zero if it fails
+install_one() {
   local pkg="$1"
-  case $PM in
+  case "$PM" in
     apt)    $SUDO apt-get install -y "$pkg" ;;
-    pacman) $SUDO pacman -S --noconfirm --needed "$pkg" ;;
+    pacman) $SUDO pacman -S --needed --noconfirm "$pkg" ;;
     dnf)    $SUDO dnf install -y "$pkg" ;;
   esac
 }
 
-# Packages common across roadmap phases (git, networking, recon, web testing).
-# Names are best-effort across distros; failures are reported, not fatal.
-PACKAGES=(
-  git
-  curl
-  wget
-  nmap
-  netcat
-  whois
-  dnsutils
-  nikto
-  sqlmap
-  hydra
-  john
-  hashcat
-  tcpdump
-  net-tools
-  python3
-  python3-pip
-  gobuster
-  ffuf
-)
+FAILED=()
+for entry in "${PACKAGES[@]}"; do
+  IFS='|' read -r name apt_pkg pacman_pkg dnf_pkg <<< "$entry"
 
-main() {
-  update_index
+  case "$PM" in
+    apt)    pkg="$apt_pkg" ;;
+    pacman) pkg="$pacman_pkg" ;;
+    dnf)    pkg="$dnf_pkg" ;;
+  esac
 
-  local ok=() failed=()
-  for pkg in "${PACKAGES[@]}"; do
-    info "Installing $pkg..."
-    if install_pkg "$pkg"; then
-      ok+=("$pkg")
-    else
-      warn "Could not install '$pkg' — name may differ on $PM"
-      failed+=("$pkg")
-    fi
-  done
-
-  echo
-  info "Installed: ${#ok[@]} packages"
-  if (( ${#failed[@]} > 0 )); then
-    warn "Failed/skipped: ${failed[*]}"
-    warn "Check docs/06-roadmap-links.md for manual install instructions."
+  if [[ "$pkg" == "-" || -z "$pkg" ]]; then
+    warn "$name: no package listed for $PM. Install it manually."
+    FAILED+=("$name")
+    continue
   fi
 
-  info "Kali/BlackArch users: many tools come preinstalled — run scripts/check-tools.sh to verify."
-  info "Done. Next: run scripts/check-tools.sh"
-}
+  info "Installing $name ($pkg)..."
+  if install_one "$pkg"; then
+    ok "$name installed."
+  else
+    warn "$name could not be installed via $PM. Install it manually or check the package name."
+    FAILED+=("$name")
+  fi
+done
 
-main "$@"
+echo
+if [[ ${#FAILED[@]} -eq 0 ]]; then
+  ok "All packages installed. Run: bash scripts/check-tools.sh"
+else
+  warn "Finished with ${#FAILED[@]} package(s) to install manually: ${FAILED[*]}"
+  warn "Some tools (e.g., nikto on Arch, or gobuster/ffuf on Fedora) may need AUR or Go installs."
+  warn "Run: bash scripts/check-tools.sh to see what is available."
+fi
